@@ -35,7 +35,6 @@ def load_results(
                     )
                 except:
                     print(f"{id_log_file} not available at {log_url}")
-
             result_dfs[f"{split}_{log_type}"] = pd.read_csv(log_csv_path)
     return result_dfs
 
@@ -85,7 +84,7 @@ def compile_results(dataset, results, in_distribution_val=False):
                 for metric in metrics:
                     # Take the standard deviation and mean across replicants for each metric
                     compiled_results[algorithm][result_type][f"{metric}_std"] = np.std(
-                        compiled_results[algorithm][result_type][metric]
+                        compiled_results[algorithm][result_type][metric], ddof=1
                     )
                     compiled_results[algorithm][result_type][metric] = np.mean(
                         compiled_results[algorithm][result_type][metric]
@@ -102,19 +101,19 @@ def get_early_stopped_row(src_df, val_df, sort_fields, ascending=False):
 
 
 def get_metrics(dataset):
-    if dataset == "amazon":
-        return ["acc_avg", "10th_percentile_acc"]
-    elif dataset == "camelyon17":
+    if "amazon" in dataset:
+        return ["10th_percentile_acc", "acc_avg"]
+    elif "camelyon17" in dataset:
         return ["acc_avg"]
-    elif dataset == "civilcomments":
-        return ["acc_avg", "acc_wg"]
-    elif dataset == "fmow":
+    elif "civilcomments" in dataset:
+        return ["acc_wg", "acc_avg"]
+    elif "fmow" in dataset:
         return ["acc_avg", "acc_worst_region"]
-    elif dataset == "iwildcam":
+    elif "iwildcam" in dataset:
         return ["acc_avg", "F1-macro_all"]
-    elif dataset == "ogb-molpcba":
+    elif "ogb-molpcba" in dataset:
         return ["ap"]
-    elif dataset == "poverty":
+    elif "poverty" in dataset:
         return ["r_all", "r_urban:0", "r_urban:1", "r_wg"]
     else:
         raise RuntimeError(f"Fetching metrics for {dataset} is not handled.")

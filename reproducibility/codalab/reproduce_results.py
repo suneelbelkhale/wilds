@@ -6,7 +6,7 @@ from itertools import product
 from examples.configs.algorithm import algorithm_defaults
 from examples.configs.datasets import dataset_defaults
 from reproducibility.codalab.hyperparameter_search_space import (
-    ID_HYPERPARAMETER_SEARCH_SPACE,
+    HYPERPARAMETER_SEARCH_SPACE,
 )
 from reproducibility.codalab.util.analysis_utils import (
     compile_results,
@@ -127,7 +127,7 @@ class CodaLabReproducibility:
         datasets = (
             dataset_defaults.keys()
             if not in_distribution
-            else list(ID_HYPERPARAMETER_SEARCH_SPACE["datasets"].keys())
+            else list(HYPERPARAMETER_SEARCH_SPACE["datasets"].keys())
         )
 
         for dataset in datasets:
@@ -210,13 +210,13 @@ class CodaLabReproducibility:
 
         for dataset, dataset_uuid in datasets_uuids.items():
             # The following datasets have in-distribution val sets and has been hyperparameter tuned
-            if dataset not in ID_HYPERPARAMETER_SEARCH_SPACE["datasets"]:
+            if dataset not in HYPERPARAMETER_SEARCH_SPACE["datasets"]:
                 continue
 
-            hyperparameters = ID_HYPERPARAMETER_SEARCH_SPACE["datasets"][dataset].keys()
+            hyperparameters = HYPERPARAMETER_SEARCH_SPACE["datasets"][dataset].keys()
             dataset_fullname = f"{dataset}_{self._wilds_version}"
             for hyperparameter_values in get_grid(
-                ID_HYPERPARAMETER_SEARCH_SPACE["datasets"][dataset].values()
+                HYPERPARAMETER_SEARCH_SPACE["datasets"][dataset].values()
             ):
                 hyperparameter_result = dict()
                 for i, hyperparameter in enumerate(hyperparameters):
@@ -250,7 +250,7 @@ class CodaLabReproducibility:
         worksheet_uuid = self._set_worksheet()
 
         # The following datasets have in-distribution val sets and has been hyperparameter tuned
-        for dataset in ID_HYPERPARAMETER_SEARCH_SPACE["datasets"].keys():
+        for dataset in HYPERPARAMETER_SEARCH_SPACE["datasets"].keys():
             metric = get_metrics(dataset)[0]
             grid_uuids = self._run(
                 [
@@ -285,15 +285,14 @@ class CodaLabReproducibility:
     def output_results(self):
         # TODO: hardcoded these for now for speeding up BERT -Tony
         worksheet_uuid = "0xb9e5615b78924cb48273f80b746c9fe7"
-        for dataset in ["amazon", "civilcomments"]:
+        for dataset in ["amazon"]:
             print(f"-- {dataset} --")
-            metrics = get_metrics(dataset)
-            sort_metric = metrics[0]
+            results = {"ERM": []}
             experiment_uuids = self._run(
                 [
                     "cl",
                     "search",
-                    f"{dataset}_erm_frac",
+                    f"{dataset}v2.0_deepcoral_seed",
                     "state=ready",
                     "host_worksheet=%s" % worksheet_uuid,
                     ".limit=100",
@@ -302,23 +301,33 @@ class CodaLabReproducibility:
             ).split("\n")
 
             for uuid in experiment_uuids:
-                bundle_name = self._run(
-                    ["cl", "info", uuid, "--field=name"], print_output=False
-                )
                 results_dfs = load_results(
                     f"https://worksheets.codalab.org/rest/bundles/{uuid}/contents/blob",
                     splits=["val", "test"],
                     include_in_distribution=True,
                 )
-                test_result_df = get_early_stopped_row(
-                    results_dfs["test_eval"], results_dfs["val_eval"], [sort_metric]
-                )
-
-                log_output = f"{bundle_name.split('_')[-1]}"
-                for metric in metrics:
-                    log_output += f" {metric}={test_result_df[metric]}"
-                print(log_output)
+                results["ERM"].append(results_dfs)
+            print(compile_results(dataset, results))
             print("\n")
+
+    def get_result(self, uuid, output=False):
+        bundle_name = self._run(
+            ["cl", "info", uuid, "--field=name"], print_output=False
+        )
+        full_uuid = self._run(["cl", "info", uuid, "--field=uuid"], print_output=False)
+        results_dfs = load_results(
+            f"https://worksheets.codalab.org/rest/bundles/{full_uuid}/contents/blob",
+            splits=["val", "test"],
+            include_in_distribution=True,
+        )
+        sort_metrics = get_metrics(bundle_name)
+        print(f"Getting early stopped row by using metrics: {sort_metrics}")
+        test_result_df = get_early_stopped_row(
+            results_dfs["val_eval"], results_dfs["val_eval"], sort_metrics
+        )
+
+        if output:
+            print(f"\n{bundle_name}:\n{test_result_df}")
 
     def _construct_command(self, dataset_name, algorithm, seed, hyperparameters):
         command = (
@@ -425,6 +434,8 @@ def main():
         reproducibility.post_tune_hyperparameters_id()
     elif args.output_results:
         reproducibility.output_results()
+    elif args.uuid:
+        reproducibility.get_result(args.uuid, output=True)
     else:
         # If the other flags are not set, just reproduce the main results of WILDS.
         reproducibility.reproduce_main_results()
@@ -442,7 +453,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--worksheet_name",
         type=str,
-        help="Name of the CodaLAb worksheet to reproduce the results on.",
+        help="Name of the CodaLab worksheet to reproduce the results on.",
     )
     parser.add_argument(
         "--all-datasets",
@@ -473,6 +484,11 @@ if __name__ == "__main__":
         "--output-results",
         action="store_true",
         help="Output results for any set of WILDS experiments (default to false).",
+    )
+    parser.add_argument(
+        "--uuid",
+        type=str,
+        help="When specified, output results for this specific run. A partial UUID is acceptable.",
     )
 
     # Parse args and run this script

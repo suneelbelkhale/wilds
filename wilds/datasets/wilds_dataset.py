@@ -260,7 +260,7 @@ class WILDSDataset:
     @property
     def compressed_size(self):
         """
-        Size of the compressed bundle
+        Size of the compressed bundle in bytes.
         """
         return getattr(self, '_compressed_size', None)
 

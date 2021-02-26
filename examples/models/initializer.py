@@ -1,7 +1,8 @@
 import torch.nn as nn
 import torchvision
-from models.bert import BertClassifier, BertFeaturizer
-from models.distil_bert import DistilBertClassifier, DistilBertFeaturizer
+
+from models.bert.bert import BertClassifier, BertFeaturizer
+from models.bert.distil_bert import DistilBertClassifier, DistilBertFeaturizer
 from models.resnet_multispectral import ResNet18
 from models.layers import Identity
 from models.gnn import GINVirtual
@@ -26,7 +27,7 @@ def initialize_model(config, d_out):
     return model
 
 def initializeBertBasedModel(config, d_out):
-    if config.model == 'bert-based-uncased':
+    if config.model == 'bert-base-uncased':
         if d_out is None:
             model = BertFeaturizer.from_pretrained(config.model, **config.model_kwargs)
         else:
@@ -34,8 +35,7 @@ def initializeBertBasedModel(config, d_out):
                 config.model,
                 num_labels=d_out,
                 **config.model_kwargs)
-    elif config.model == 'distilbert-based-uncased':
-        print('Initializing DistilBERT model instead of the default BERT')
+    elif config.model == 'distilbert-base-uncased':
         if d_out is None:
             model = DistilBertFeaturizer.from_pretrained(config.model, **config.model_kwargs)
         else:

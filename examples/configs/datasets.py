@@ -1,19 +1,19 @@
 dataset_defaults = {
     'amazon': {
         'split_scheme': 'official',
-        'model': 'bert-base-uncased',
+        'model': 'distilbert-base-uncased',
         'train_transform': 'bert',
         'eval_transform': 'bert',
         'max_token_length': 512,
         'loss_function': 'cross_entropy',
         'algo_log_metric': 'accuracy',
         'batch_size': 8,
-        'lr': 2e-6,
+        'lr': 1e-5,
         'weight_decay': 0.01,
         'n_epochs': 3,
         'n_groups_per_batch': 2,
         'irm_lambda': 1.0,
-        'coral_penalty_weight': 10.0,
+        'coral_penalty_weight': 0.1,
     },
     'bdd100k': {
         'split_scheme': 'official',
@@ -75,7 +75,7 @@ dataset_defaults = {
     },
     'civilcomments': {
         'split_scheme': 'official',
-        'model': 'bert-base-uncased',
+        'model': 'distilbert-base-uncased',
         'train_transform': 'bert',
         'eval_transform': 'bert',
         'loss_function': 'cross_entropy',
@@ -88,6 +88,8 @@ dataset_defaults = {
         'n_epochs': 5,
         'algo_log_metric': 'accuracy',
         'max_token_length': 300,
+        'irm_lambda': 1.0,
+        'coral_penalty_weight': 10.0,
     },
     'fmow': {
         'split_scheme': 'official',
