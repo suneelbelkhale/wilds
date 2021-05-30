@@ -46,6 +46,7 @@ dataset_defaults = {
         'eval_transform': 'image_base',
         'target_resolution': (96, 96),
         'loss_function': 'cross_entropy',
+        'domain_loss_function': 'multitask_bce',
         'groupby_fields': ['hospital'],
         'val_metric': 'acc_avg',
         'val_metric_decreasing': False,

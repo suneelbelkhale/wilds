@@ -66,6 +66,8 @@ def main():
     parser.add_argument('--groupby_fields', nargs='+')
     parser.add_argument('--group_dro_step_size', type=float)
     parser.add_argument('--coral_penalty_weight', type=float)
+    parser.add_argument('--dann_lambda', type=float)
+    parser.add_argument('--domain_loss_function', choices = supported.losses)
     parser.add_argument('--irm_lambda', type=float)
     parser.add_argument('--irm_penalty_anneal_iters', type=int)
     parser.add_argument('--algo_log_metric')

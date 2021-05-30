@@ -115,9 +115,10 @@ class Camelyon17Dataset(WILDSDataset):
         self._metadata_array = torch.stack(
             (torch.LongTensor(centers),
              torch.LongTensor(self._metadata_df['slide'].values),
-             self._y_array),
+             self._y_array,
+             torch.LongTensor((val_center_mask | test_center_mask).values)),
             dim=1)
-        self._metadata_fields = ['hospital', 'slide', 'y']
+        self._metadata_fields = ['hospital', 'slide', 'y', 'domain']
 
         self._eval_grouper = CombinatorialGrouper(
             dataset=self,
