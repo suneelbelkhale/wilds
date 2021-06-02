@@ -113,11 +113,6 @@ class Camelyon17Dataset(WILDSDataset):
             for slide in list(range(10, 15)):
                 slide_mask = (self._metadata_df['slide'] == slide)
                 self._metadata_df.loc[slide_mask, 'split'] = self.split_dict['train']
-        elif self._split_scheme == 'domain-q':
-            # we move quarter the validation slides (val_center) to training
-            for slide in list(range(10, 13)):
-                slide_mask = (self._metadata_df['slide'] == slide)
-                self._metadata_df.loc[slide_mask, 'split'] = self.split_dict['train']
         else:
             raise ValueError(f'Split scheme {self._split_scheme} not recognized')
         self._split_array = self._metadata_df['split'].values

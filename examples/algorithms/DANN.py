@@ -19,15 +19,17 @@ class DANN(SingleModelAlgorithm):
         # initialize models
         featurizer, label_classifier = initialize_model(config, d_out=d_out, is_featurizer=True)
         featurizer = featurizer.to(config.device)
-        label_classifier = label_classifier.to(config.device)
         reverse_gradient = RevGradLayer().to(config.device)
-        if 1:
+        if config.dann_domain_layered:
+            label_classifier = torch.nn.Sequential(torch.nn.Linear(in_features=featurizer.d_out, out_features=32),
+                                                   torch.nn.ReLU(),
+                                                   torch.nn.Linear(in_features=32, out_features=d_out)).to(config.device)
             domain_classifier = torch.nn.Sequential(reverse_gradient, torch.nn.Linear(in_features=featurizer.d_out, out_features=32),
                                                     torch.nn.ReLU(),
                                                     torch.nn.Linear(in_features=32, out_features=1)).to(config.device)
         else:
+            label_classifier = label_classifier.to(config.device)
             domain_classifier = torch.nn.Sequential(reverse_gradient, torch.nn.Linear(in_features=featurizer.d_out, out_features=1)).to(config.device)
-
 
         classifier = BranchedModules(['lc', 'dc'], {'lc': label_classifier, 'dc': domain_classifier}, cat_dim=-1).to(config.device)
 
@@ -80,6 +82,7 @@ class DANN(SingleModelAlgorithm):
 
     def objective(self, results):
         d = results['d']
+        d_pred = results['d_pred']
         y_pred_train = results['y_pred'][d == 0]
         y_true_train = results['y_true'][d == 0]
 
@@ -87,7 +90,7 @@ class DANN(SingleModelAlgorithm):
         avg_loss = self.loss.compute(y_pred_train, y_true_train, return_dict=False)
 
         # domain loss on all groups
-        dloss = self.domain_loss.compute(results['d_pred'], d[:, None], return_dict=False)
+        dloss = self.domain_loss.compute(d_pred, d[:, None], return_dict=False)
 
         results['domain_classifier_loss'] = dloss.item()
 

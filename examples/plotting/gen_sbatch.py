@@ -4,6 +4,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('config', type=str)
 parser.add_argument('--dann_lambdas', type=float, nargs='+', required=True)
+parser.add_argument('--use_dann_mlp', type=float, nargs='+', required=True)
 parser.add_argument('--output_prefix', type=str, default="dann_logs_")
 parser.add_argument('--output_folder', type=str)
 parser.add_argument('--conda_env', type=str, default="wilds")
