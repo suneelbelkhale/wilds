@@ -4,6 +4,16 @@ from algorithms.single_model_algorithm import SingleModelAlgorithm
 from models.layers import BranchedModules, RevGradLayer
 from wilds.common.utils import split_into_groups
 
+def make_mlp(in_size, hidden_sizes):
+    curr_size = in_size
+    block = []
+    for h in hidden_sizes:
+        block.extend([torch.nn.Linear(in_features=curr_size, out_features=h), torch.nn.ReLU()])
+        curr_size = h
+    assert len(hidden_sizes) > 0
+    block = block[:-1]  # get rid of last ReLU
+    return block
+
 class DANN(SingleModelAlgorithm):
     """
     Domain Adversarial Neural Networks.
@@ -20,16 +30,19 @@ class DANN(SingleModelAlgorithm):
         featurizer, label_classifier = initialize_model(config, d_out=d_out, is_featurizer=True)
         featurizer = featurizer.to(config.device)
         reverse_gradient = RevGradLayer().to(config.device)
-        if config.dann_domain_layered:
-            label_classifier = torch.nn.Sequential(torch.nn.Linear(in_features=featurizer.d_out, out_features=32),
-                                                   torch.nn.ReLU(),
-                                                   torch.nn.Linear(in_features=32, out_features=d_out)).to(config.device)
-            domain_classifier = torch.nn.Sequential(reverse_gradient, torch.nn.Linear(in_features=featurizer.d_out, out_features=32),
-                                                    torch.nn.ReLU(),
-                                                    torch.nn.Linear(in_features=32, out_features=1)).to(config.device)
+
+        # mlp
+        if config.dann_domain_layers >= 1:
+            block = make_mlp(featurizer.d_out, [32] * config.dann_domain_layers + [1])
+            domain_classifier = torch.nn.Sequential(reverse_gradient, *block)
+        else:
+            domain_classifier = torch.nn.Sequential(reverse_gradient,
+                                                    torch.nn.Linear(in_features=featurizer.d_out, out_features=1)).to(config.device)
+        if config.dann_label_layers >= 1:
+            block = make_mlp(featurizer.d_out, [32] * config.dann_label_layers + [d_out])
+            label_classifier = torch.nn.Sequential(*block).to(config.device)
         else:
             label_classifier = label_classifier.to(config.device)
-            domain_classifier = torch.nn.Sequential(reverse_gradient, torch.nn.Linear(in_features=featurizer.d_out, out_features=1)).to(config.device)
 
         classifier = BranchedModules(['lc', 'dc'], {'lc': label_classifier, 'dc': domain_classifier}, cat_dim=-1).to(config.device)
 
@@ -94,4 +107,4 @@ class DANN(SingleModelAlgorithm):
 
         results['domain_classifier_loss'] = dloss.item()
 
-        return avg_loss - self.dann_lambda * dloss
+        return avg_loss + self.dann_lambda * dloss

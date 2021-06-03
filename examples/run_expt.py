@@ -67,7 +67,8 @@ def main():
     parser.add_argument('--group_dro_step_size', type=float)
     parser.add_argument('--coral_penalty_weight', type=float)
     parser.add_argument('--dann_lambda', type=float)
-    parser.add_argument('--dann_domain_layered', type=parse_bool, const=True, nargs='?', default=False)
+    parser.add_argument('--dann_domain_layers', type=int, default=1)  # hidden layers
+    parser.add_argument('--dann_label_layers', type=int, default=1)  # hidden layers
     parser.add_argument('--domain_loss_function', choices = supported.losses)
     parser.add_argument('--irm_lambda', type=float)
     parser.add_argument('--irm_penalty_anneal_iters', type=int)
