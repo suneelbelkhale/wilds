@@ -1,10 +1,22 @@
 import argparse
 import os
+import decimal
+ctx = decimal.Context()
+ctx.prec = 20
+
+def float_to_str(f):
+    """
+    Convert the given float to a string,
+    without resorting to scientific notation
+    """
+    d1 = ctx.create_decimal(repr(f))
+    return format(d1, 'f')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('config', type=str)
 parser.add_argument('--dann_lambdas', type=float, nargs='+', required=True)
-parser.add_argument('--use_dann_mlp', type=float, nargs='+', required=True)
+parser.add_argument('--split_scheme', type=str, choices=['domain', 'domain-q', 'original', 'in-dist'], default='domain')
+#parser.add_argument('--use_dann_mlp', type=float, nargs='+', required=True)
+parser.add_argument('--groups_per_batch', type=int, default=2)
 parser.add_argument('--output_prefix', type=str, default="dann_logs_")
 parser.add_argument('--output_folder', type=str)
 parser.add_argument('--conda_env', type=str, default="wilds")
@@ -22,7 +34,7 @@ print("Generating sbatch scripts for betas: %s" % str(lmds))
 # Run your command
 file_names = []
 for dl in lmds:
-    name = args.output_prefix + "dl_%s" % str(dl).replace('.', '_')
+    name = args.output_prefix + "g%d_dl_%s" % (args.groups_per_batch, float_to_str(dl).replace('.', '_'))
     file_names.append(name)
     with open(os.path.join(args.output_folder, "%s.sh" % name), mode='w') as fh:
         fh.writelines("#!/bin/bash\n")
@@ -46,7 +58,7 @@ for dl in lmds:
         fh.writelines("cd /iliad/u/belkhale/wilds || exit\n")
         fh.writelines("conda activate %s\n" % args.conda_env)
         fh.writelines("python examples/run_expt.py --dataset camelyon17 --algorithm DANN "
-                      "--root_dir data --n_groups_per_batch 2 --split_scheme in-dist --dann_lambda %f "
-                      "--log_dir ./%s/" % (dl, name))
+                      "--root_dir data --n_groups_per_batch %d --split_scheme %s --dann_lambda %f "
+                      "--log_dir ./%s/%s/" % (args.groups_per_batch, args.split_scheme, dl, args.split_scheme, name))
 
 print("done generating files: %s" % file_names)
